@@ -1,134 +1,3 @@
-// // File: src/pages/AdminPanel.jsx
-// import React, { useEffect, useState } from 'react';
-// import { db, auth } from '../firebase/config';
-// import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-// import {
-//   Container, Typography, TextField, Button, Grid, Card, CardContent,
-//   CardActions, IconButton, Menu, MenuItem, Box
-// } from '@mui/material';
-// import AccountCircle from '@mui/icons-material/AccountCircle';
-// import EditIcon from '@mui/icons-material/Edit';
-// import DeleteIcon from '@mui/icons-material/Delete';
-// import { signOut } from 'firebase/auth';
-
-// function AdminPanel() {
-//   const [projects, setProjects] = useState([]);
-//   const [form, setForm] = useState({ name: '', primary: '', secondary: '', teamLead: '', logoUrl: '' });
-//   const [editId, setEditId] = useState(null);
-//   const [anchorEl, setAnchorEl] = useState(null);
-//   const user = auth.currentUser;
-
-//   const fetchProjects = async () => {
-//     const querySnapshot = await getDocs(collection(db, 'projects'));
-//     const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-//     setProjects(data);
-//   };
-
-//   useEffect(() => { fetchProjects(); }, []);
-
-//   const handleSubmit = async () => {
-//     if (editId) {
-//       await updateDoc(doc(db, 'projects', editId), form);
-//       setEditId(null);
-//     } else {
-//       await addDoc(collection(db, 'projects'), form);
-//     }
-//     setForm({ name: '', primary: '', secondary: '', teamLead: '', logoUrl: '' });
-//     fetchProjects();
-//   };
-
-//   const handleEdit = (project) => {
-//     setForm({
-//       name: project.name,
-//       primary: project.primary,
-//       secondary: project.secondary,
-//     //   tertiary: project.tertiary,
-//       teamLead: project.teamLead,
-//       logoUrl: project.logoUrl
-//     });
-//     setEditId(project.id);
-//   };
-
-//   const handleDelete = async (id) => {
-//     await deleteDoc(doc(db, 'projects', id));
-//     fetchProjects();
-//   };
-
-//   const handleMenuOpen = (event) => {
-//     setAnchorEl(event.currentTarget);
-//   };
-
-//   const handleMenuClose = () => {
-//     setAnchorEl(null);
-//   };
-
-//   const handleLogout = async () => {
-//     await signOut(auth);
-//     window.location.href = '/';
-//   };
-
-//   return (
-//     <Container>
-//       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-//         <Typography variant="h4">Admin Panel</Typography>
-//         <div>
-//           <IconButton onClick={handleMenuOpen} color="inherit">
-//             <AccountCircle fontSize="large" />
-//           </IconButton>
-//           <Menu
-//             anchorEl={anchorEl}
-//             open={Boolean(anchorEl)}
-//             onClose={handleMenuClose}
-//           >
-//             <MenuItem disabled>{user?.email}</MenuItem>
-//             <MenuItem onClick={handleLogout}>Logout</MenuItem>
-//           </Menu>
-//         </div>
-//       </Box>
-
-//       <Grid container spacing={2}>
-//         <Grid item xs={12} md={6}>
-//           <TextField fullWidth label="Project Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} margin="normal" />
-//           <TextField fullWidth label="Primary Support" value={form.primary} onChange={(e) => setForm({ ...form, primary: e.target.value })} margin="normal" />
-//           <TextField fullWidth label="Secondary Support" value={form.secondary} onChange={(e) => setForm({ ...form, secondary: e.target.value })} margin="normal" />
-//           {/* <TextField fullWidth label="Tertiary Support" value={form.tertiary} onChange={(e) => setForm({ ...form, tertiary: e.target.value })} margin="normal" /> */}
-//           <TextField fullWidth label="Team Lead" value={form.teamLead} onChange={(e) => setForm({ ...form, teamLead: e.target.value })} margin="normal" />
-//           <TextField fullWidth label="Logo Image URL" value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} margin="normal" />
-//           <Button variant="contained" color="primary" fullWidth onClick={handleSubmit} style={{ marginTop: 16 }}>
-//             {editId ? 'Update Project' : 'Add Project'}
-//           </Button>
-//         </Grid>
-//         <Grid item xs={12} md={6}>
-//           {projects.map(p => (
-//             <Card key={p.id} style={{ marginBottom: 12 }}>
-//               <CardContent>
-//                 <Typography variant="h6">{p.name}</Typography>
-//                 <Typography>Primary: {p.primary}</Typography>
-//                 <Typography>Secondary: {p.secondary}</Typography>
-//                 {/* <Typography>Tertiary: {p.tertiary}</Typography> */}
-//                 <Typography>Team Lead: {p.teamLead}</Typography>
-//               </CardContent>
-//               <CardActions>
-//                 <IconButton onClick={() => handleEdit(p)} color="primary"><EditIcon /></IconButton>
-//                 <IconButton onClick={() => handleDelete(p.id)} color="error"><DeleteIcon /></IconButton>
-//               </CardActions>
-//             </Card>
-//           ))}
-//         </Grid>
-//       </Grid>
-//     </Container>
-//   );
-// }
-
-// export default AdminPanel;
-// Modular Admin Panel with Drag-and-Drop and Enhanced UI
-
-// File: src/pages/AdminPanel.jsx
-// File: src/pages/AdminPanel.jsx
-// File: src/pages/AdminPanel.jsx
-// File: src/pages/AdminPanel.jsx
-// File: src/pages/AdminPanel.jsx
-// File: src/pages/AdminPanel.jsx
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase/config';
 import {
@@ -153,6 +22,11 @@ function AdminPanel() {
   const [toast, setToast] = useState({ open: false, message: '' });
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [deletingProject, setDeletingProject] = useState(null);
+
+  // For employee delete confirmation dialog
+  const [confirmDeleteEmployeeDialog, setConfirmDeleteEmployeeDialog] = useState(false);
+  const [deletingEmployee, setDeletingEmployee] = useState(null);
+
   const user = auth.currentUser;
 
   const fetchProjects = async () => {
@@ -174,8 +48,25 @@ function AdminPanel() {
 
   const handleAssign = async (projectId, role, employeeName) => {
     const projectRef = doc(db, 'projects', projectId);
-    await updateDoc(projectRef, { [role]: employeeName });
+    if (role === 'secondary') {
+      const project = projects.find(p => p.id === projectId);
+      const current = project.secondary || [];
+      if (current.includes(employeeName) || current.length >= 3) return;
+      await updateDoc(projectRef, { secondary: [...current, employeeName] });
+    } else {
+      await updateDoc(projectRef, { [role]: employeeName });
+    }
     setToast({ open: true, message: `${role} updated.` });
+    fetchProjects();
+  };
+
+  const handleRemoveSecondaryMember = async (projectId, memberName) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedSecondary = project.secondary.filter(m => m !== memberName);
+    const projectRef = doc(db, 'projects', projectId);
+    await updateDoc(projectRef, { secondary: updatedSecondary });
+    setToast({ open: true, message: 'Secondary member removed.' });
     fetchProjects();
   };
 
@@ -187,6 +78,41 @@ function AdminPanel() {
     }
     setConfirmDialog(false);
     setDeletingProject(null);
+  };
+
+  // Employee management functions
+  const handleAddEmployee = async (name) => {
+    if (!name) return;
+    const usersRef = collection(db, 'users');
+    await setDoc(doc(usersRef), { name, role: 'employee' });
+    setToast({ open: true, message: 'Employee added.' });
+    fetchEmployees();
+  };
+
+  const handleEditEmployee = async (id, name) => {
+    if (!id || !name) return;
+    const userRef = doc(db, 'users', id);
+    await updateDoc(userRef, { name });
+    setToast({ open: true, message: 'Employee updated.' });
+    fetchEmployees();
+  };
+
+  // Open confirmation dialog before deleting employee
+  const handleDeleteEmployeeConfirm = (employee) => {
+    setDeletingEmployee(employee);
+    setConfirmDeleteEmployeeDialog(true);
+  };
+
+  // Confirm and delete employee after dialog confirmation
+  const handleConfirmDeleteEmployee = async () => {
+    if (deletingEmployee) {
+      const userRef = doc(db, 'users', deletingEmployee.id);
+      await deleteDoc(userRef);
+      setToast({ open: true, message: 'Employee deleted.' });
+      fetchEmployees();
+    }
+    setConfirmDeleteEmployeeDialog(false);
+    setDeletingEmployee(null);
   };
 
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
@@ -211,7 +137,14 @@ function AdminPanel() {
 
       <Grid container spacing={2}>
         <Grid item xs={12} md={3}>
-          <TeamList employees={employees} onRefresh={fetchEmployees} />
+          <TeamList
+            employees={employees}
+            projects={projects}
+            onAdd={handleAddEmployee}
+            onEdit={handleEditEmployee}
+            onDelete={handleDeleteEmployeeConfirm} // Use confirm dialog handler
+            onRefresh={fetchEmployees}
+          />
         </Grid>
         <Grid item xs={12} md={9}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -233,6 +166,7 @@ function AdminPanel() {
                     setOpenModal(true);
                   }}
                   onAssign={handleAssign}
+                  onRemoveSecondary={handleRemoveSecondaryMember}
                   onDelete={() => {
                     setDeletingProject(project);
                     setConfirmDialog(true);
@@ -262,11 +196,21 @@ function AdminPanel() {
         }}
       />
 
+      {/* Project Delete Confirmation Dialog */}
       <Dialog open={confirmDialog} onClose={() => setConfirmDialog(false)}>
         <DialogTitle>Are you sure you want to delete this project?</DialogTitle>
         <DialogActions>
           <Button onClick={() => setConfirmDialog(false)}>Cancel</Button>
           <Button onClick={handleDelete} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Employee Delete Confirmation Dialog */}
+      <Dialog open={confirmDeleteEmployeeDialog} onClose={() => setConfirmDeleteEmployeeDialog(false)}>
+        <DialogTitle>Are you sure you want to delete this employee?</DialogTitle>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteEmployeeDialog(false)}>Cancel</Button>
+          <Button onClick={handleConfirmDeleteEmployee} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
 
@@ -281,3 +225,5 @@ function AdminPanel() {
 }
 
 export default AdminPanel;
+
+
