@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Card, CardContent, CardActions, IconButton, Typography,
@@ -9,26 +8,25 @@ import DeleteIcon from '@mui/icons-material/Delete';
 
 function ProjectCard({ project, onEdit, onAssign, onRemoveSecondary, onDelete }) {
   const [loadingField, setLoadingField] = useState(null);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [dragOverField, setDragOverField] = useState(null); // Track which drop zone is hovered
 
-  // Check if dragging employee can be dropped on secondary
-  const allowDrop = (e) => {
+  const allowDrop = (e, role) => {
     e.preventDefault();
     const employeeName = e.dataTransfer.getData('text');
-    // Disable drop if employee is primary or teamLead
-    if (employeeName === project.primary || employeeName === project.teamLead) {
-      return; // Don't allow drop
+
+    // Prevent dropping if secondary and employee is primary or teamLead
+    if (role === 'secondary' && (employeeName === project.primary || employeeName === project.teamLead)) {
+      return; // Don't allow drop, don't highlight
     }
-    setIsDragOver(true);
+    setDragOverField(role);
   };
 
   const handleDrop = async (e, role) => {
     e.preventDefault();
-    setIsDragOver(false);
+    setDragOverField(null);
     const employeeName = e.dataTransfer.getData('text');
     if (!employeeName) return;
 
-    // Prevent adding primary or teamLead to secondary
     if (role === 'secondary' && (employeeName === project.primary || employeeName === project.teamLead)) {
       alert(`${employeeName} cannot be assigned to Secondary as they are already Primary or Team Lead.`);
       return;
@@ -54,12 +52,20 @@ function ProjectCard({ project, onEdit, onAssign, onRemoveSecondary, onDelete })
     await onRemoveSecondary(project.id, name);
   };
 
+  // Shared style function to apply blue highlight when dragging over
+  const getDropZoneStyle = (role) => ({
+    ...dropZoneStyle,
+    borderColor: dragOverField === role ? '#1976d2' : '#ccc',
+    backgroundColor: dragOverField === role ? 'rgba(25, 118, 210, 0.1)' : 'transparent',
+    cursor: 'pointer'
+  });
+
   const renderDropZone = (label, fieldName) => (
     <Box
       onDrop={(e) => handleDrop(e, fieldName)}
-      onDragOver={allowDrop}
-      onDragLeave={() => setIsDragOver(false)}
-      sx={dropZoneStyle}
+      onDragOver={(e) => allowDrop(e, fieldName)}
+      onDragLeave={() => setDragOverField(null)}
+      sx={getDropZoneStyle(fieldName)}
     >
       {loadingField === fieldName
         ? <CircularProgress size={20} />
@@ -72,16 +78,12 @@ function ProjectCard({ project, onEdit, onAssign, onRemoveSecondary, onDelete })
     return (
       <Box
         onDrop={(e) => handleDrop(e, 'secondary')}
-        onDragOver={allowDrop}
-        onDragLeave={() => setIsDragOver(false)}
+        onDragOver={(e) => allowDrop(e, 'secondary')}
+        onDragLeave={() => setDragOverField(null)}
         sx={{
-          ...dropZoneStyle,
+          ...getDropZoneStyle('secondary'),
           minHeight: secondary.length ? 70 : 40,
           padding: secondary.length ? '8px' : '12px',
-          borderColor: isDragOver ? '#1976d2' : '#ccc',
-          backgroundColor: isDragOver ? 'rgba(25, 118, 210, 0.1)' : 'transparent',
-          // If dropping disabled, show disabled cursor and faded style
-          cursor: 'pointer',
         }}
       >
         <Typography variant="body2" sx={{ mb: 1, fontWeight: '600' }}>
@@ -102,7 +104,7 @@ function ProjectCard({ project, onEdit, onAssign, onRemoveSecondary, onDelete })
               </IconButton>
             </Box>
           ))
-        ) : !isDragOver && (
+        ) : !dragOverField && (
           <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
             Drag employee here
           </Typography>
@@ -115,7 +117,7 @@ function ProjectCard({ project, onEdit, onAssign, onRemoveSecondary, onDelete })
           </Typography>
         )}
       </Box>
-  );
+    );
   };
 
   const formatDate = (dateStr) => {
